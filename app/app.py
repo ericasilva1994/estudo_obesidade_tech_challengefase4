@@ -1,6 +1,7 @@
-# ============================================
-# Aplicação Streamlit – Predição de Obesidade
-# ============================================
+# ===============================
+# Aplicação Streamlit
+# Predição de Obesidade
+# ===============================
 
 import os
 import joblib
@@ -8,69 +9,71 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-# --------------------------------------------
+# -------------------------------
+# Caminho base (pasta app)
+# -------------------------------
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+MODEL_PATH = os.path.join(BASE_DIR, "model.pkl")
+ENCODER_PATH = os.path.join(BASE_DIR, "encoder.pkl")
+SCALER_PATH = os.path.join(BASE_DIR, "scaler.pkl")
+
+# -------------------------------
+# Carregamento dos artefatos
+# -------------------------------
+model = joblib.load(MODEL_PATH)
+encoder = joblib.load(ENCODER_PATH)
+scaler = joblib.load(SCALER_PATH)
+
+# -------------------------------
 # Configuração da página
-# --------------------------------------------
+# -------------------------------
 st.set_page_config(
-    page_title="Predição de Obesidade",
+    page_title="Sistema Preditivo de Obesidade",
     page_icon="🩺",
     layout="centered"
 )
 
 st.title("🩺 Sistema Preditivo de Obesidade")
+
 st.write(
     "Este sistema utiliza Machine Learning para auxiliar a equipe médica "
     "na identificação do nível de obesidade de um paciente."
 )
 
-# --------------------------------------------
-# Caminho correto dos arquivos (Streamlit Cloud)
-# --------------------------------------------
-CURRENT_DIR = os.getcwd()
-
-# (debug visual – pode remover depois)
-# st.write("Diretório atual:", CURRENT_DIR)
-# st.write("Arquivos:", os.listdir(CURRENT_DIR))
-
-# --------------------------------------------
-# Carregamento dos artefatos treinados
-# --------------------------------------------
-model = joblib.load(os.path.join(CURRENT_DIR, "model.pkl"))
-encoder = joblib.load(os.path.join(CURRENT_DIR, "encoder.pkl"))
-scaler = joblib.load(os.path.join(CURRENT_DIR, "scaler.pkl"))
-
-# --------------------------------------------
-# Formulário de entrada
-# --------------------------------------------
+# -------------------------------
+# Entrada de dados
+# -------------------------------
 st.header("📋 Dados do paciente")
 
 gender = st.selectbox("Gênero", ["Male", "Female"])
-age = st.number_input("Idade", min_value=14, max_value=100, value=30)
-height = st.number_input("Altura (m)", min_value=1.40, max_value=2.10, value=1.70)
-weight = st.number_input("Peso (kg)", min_value=30.0, max_value=200.0, value=70.0)
+age = st.number_input("Idade", 14, 100, 30)
+height = st.number_input("Altura (m)", 1.40, 2.10, 1.70)
+weight = st.number_input("Peso (kg)", 30.0, 200.0, 70.0)
 
-family_history = st.selectbox("Histórico familiar de excesso de peso?", ["yes", "no"])
+family_history = st.selectbox("Histórico familiar de obesidade?", ["yes", "no"])
 favc = st.selectbox("Consome alimentos altamente calóricos?", ["yes", "no"])
 fcvc = st.slider("Consumo de vegetais", 1, 3, 2)
-ncp = st.slider("Número de refeições principais", 1, 4, 3)
-caec = st.selectbox("Come entre as refeições?", ["no", "Sometimes", "Frequently", "Always"])
+ncp = st.slider("Número de refeições", 1, 4, 3)
+caec = st.selectbox("Come entre refeições?", ["no", "Sometimes", "Frequently", "Always"])
 smoke = st.selectbox("Fuma?", ["yes", "no"])
-ch2o = st.slider("Consumo diário de água", 1, 3, 2)
+ch2o = st.slider("Consumo de água", 1, 3, 2)
 scc = st.selectbox("Monitora calorias?", ["yes", "no"])
-faf = st.slider("Frequência de atividade física", 0, 3, 1)
-tue = st.slider("Tempo usando eletrônicos", 0, 2, 1)
+faf = st.slider("Atividade física", 0, 3, 1)
+tue = st.slider("Tempo em eletrônicos", 0, 2, 1)
 calc = st.selectbox("Consumo de álcool", ["no", "Sometimes", "Frequently", "Always"])
 mtrans = st.selectbox(
     "Meio de transporte",
     ["Automobile", "Motorbike", "Bike", "Public_Transportation", "Walking"]
 )
 
-# --------------------------------------------
+# -------------------------------
 # Predição
-# --------------------------------------------
+# -------------------------------
 if st.button("🔍 Realizar predição"):
 
-    # Criação do dataframe de entrada
+    bmi = weight / (height ** 2)
+
     input_data = pd.DataFrame([{
         "Gender": gender,
         "Age": age,
@@ -88,7 +91,7 @@ if st.button("🔍 Realizar predição"):
         "TUE": tue,
         "CALC": calc,
         "MTRANS": mtrans,
-        "BMI": weight / (height ** 2)
+        "BMI": bmi
     }])
 
     # Separação de colunas
@@ -99,8 +102,8 @@ if st.button("🔍 Realizar predição"):
     X_cat = encoder.transform(input_data[cat_cols])
     X_num = scaler.transform(input_data[num_cols])
 
-    # Junção final
-    X_final = np.hstack([X_num, X_cat])
+    # Junta tudo
+    X_final = np.hstack((X_num, X_cat))
 
     # Predição
     prediction = model.predict(X_final)[0]
@@ -109,6 +112,7 @@ if st.button("🔍 Realizar predição"):
     st.success(f"✅ Nível de obesidade previsto: **{prediction}**")
 
     st.caption(
-        "⚠️ Este resultado é apenas um apoio à decisão e não substitui "
-        "avaliação médica profissional."
+        "⚠️ Este resultado é apenas um apoio à decisão e não substitui avaliação médica."
     )
+
+
